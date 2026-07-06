@@ -48,17 +48,18 @@ func parseADBDevices(output string) []model.Device {
 	var devices []model.Device
 	for _, line := range strings.Split(output, "\n") {
 		fields := strings.Fields(line)
-		if len(fields) != 2 || fields[0] == "List" {
+		if len(fields) < 2 || fields[0] == "List" {
 			continue
 		}
-		serial, state := fields[0], fields[1]
+		serial := fields[0]
+		state := strings.Join(fields[1:], " ")
 		status := "connected"
 		if state != "device" {
 			status = "disconnected"
 		}
 		devices = append(devices, model.Device{
 			ID:     "adb:" + serial,
-			Name:   serial, // overridden by GetDeviceName if available
+			Name:   serial,
 			Type:   "adb",
 			Status: status,
 		})
@@ -84,22 +85,29 @@ func parseADBFiles(output, dir string) []model.FileInfo {
 			continue
 		}
 		perms := fields[0]
-		if perms == "total" {
-			continue
-		}
+
+		// The filename is everything after the "YYYY-MM-DD HH:MM" timestamp,
+		// which sits at fixed columns (fields[5], fields[6]). Locating that
+		// anchor in the raw line (rather than just taking the last field)
+		// preserves filenames that contain spaces.
+		dateStr, timeStr := fields[5], fields[6]
+		anchor := dateStr + " " + timeStr
 		name := fields[len(fields)-1]
-		if name == "." || name == ".." {
+		if idx := strings.Index(line, anchor); idx >= 0 {
+			name = strings.TrimSpace(line[idx+len(anchor):])
+		}
+		// Symlink lines look like "... 10:30 link -> target"; keep only the link name.
+		if arrow := strings.Index(name, " -> "); arrow >= 0 {
+			name = name[:arrow]
+		}
+		if name == "" || name == "." || name == ".." {
 			continue
 		}
 		isDir := strings.HasPrefix(perms, "d")
 		size, _ := strconv.ParseInt(fields[4], 10, 64)
-		// parse date "2024-01-15 10:30" from fields[5] and fields[6]
 		modTime := time.Time{}
-		if len(fields) >= 7 {
-			t, err := time.Parse("2006-01-02 15:04", fields[5]+" "+fields[6])
-			if err == nil {
-				modTime = t
-			}
+		if t, err := time.Parse("2006-01-02 15:04", anchor); err == nil {
+			modTime = t
 		}
 		files = append(files, model.FileInfo{
 			Name:    name,

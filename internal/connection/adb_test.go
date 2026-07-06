@@ -30,6 +30,20 @@ func TestParseADBDevices(t *testing.T) {
 	}
 }
 
+func TestParseADBDevices_MultiWordStatus(t *testing.T) {
+	output := "List of devices attached\n????????????\tno permissions (missing udev rules? user is not in the plugdev group)\n"
+	devices := parseADBDevices(output)
+	if len(devices) != 1 {
+		t.Fatalf("expected 1 device, got %d", len(devices))
+	}
+	if devices[0].ID != "adb:????????????" {
+		t.Errorf("expected serial adb:????????????, got %s", devices[0].ID)
+	}
+	if devices[0].Status != "disconnected" {
+		t.Errorf("expected disconnected, got %s", devices[0].Status)
+	}
+}
+
 func TestParseADBFiles(t *testing.T) {
 	output := `-rw-rw-rw- 1 root sdcard_rw  1024 2024-01-15 10:30 file.txt
 drwxrwx--x 2 root sdcard_rw  4096 2024-01-15 10:00 folder
@@ -43,5 +57,33 @@ drwxrwx--x 2 root sdcard_rw  4096 2024-01-15 10:00 folder
 	}
 	if files[1].Name != "folder" || !files[1].IsDir {
 		t.Errorf("unexpected dir: %+v", files[1])
+	}
+}
+
+func TestParseADBFiles_NameWithSpaces(t *testing.T) {
+	output := "-rw-rw---- 1 u0_a123 sdcard_rw 204800 2024-01-15 10:30 My Photo.jpg\n"
+	files := parseADBFiles(output, "/sdcard")
+	if len(files) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(files))
+	}
+	if files[0].Name != "My Photo.jpg" {
+		t.Errorf("expected 'My Photo.jpg', got %q", files[0].Name)
+	}
+	if files[0].Path != "/sdcard/My Photo.jpg" {
+		t.Errorf("expected path '/sdcard/My Photo.jpg', got %q", files[0].Path)
+	}
+	if files[0].Size != 204800 {
+		t.Errorf("expected size 204800, got %d", files[0].Size)
+	}
+}
+
+func TestParseADBFiles_Symlink(t *testing.T) {
+	output := "lrwxrwxrwx 1 root root 20 2024-01-15 10:30 link -> target file.txt\n"
+	files := parseADBFiles(output, "/sdcard")
+	if len(files) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(files))
+	}
+	if files[0].Name != "link" {
+		t.Errorf("expected name 'link', got %q", files[0].Name)
 	}
 }
