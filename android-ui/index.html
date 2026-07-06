@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Android File Transfer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>📁 文件传输</h1>
+    <div id="breadcrumb"></div>
+  </header>
+
+  <main>
+    <div id="file-list"></div>
+    <div id="empty-tip" class="hidden">此目录为空</div>
+  </main>
+
+  <footer>
+    <label class="upload-btn">
+      📤 上传文件
+      <input type="file" id="upload-input" multiple hidden>
+    </label>
+    <div id="progress-bar" class="hidden">
+      <div id="progress-fill"></div>
+      <span id="progress-text"></span>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
