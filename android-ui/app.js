@@ -1,22 +1,48 @@
-let currentPath = '/';
+let currentPath = '';
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function showError(msg) {
+  const list = document.getElementById('file-list');
+  const empty = document.getElementById('empty-tip');
+  list.innerHTML = '';
+  empty.textContent = msg;
+  empty.classList.remove('hidden');
+}
 
 async function loadFiles(path) {
   currentPath = path;
   updateBreadcrumb(path);
-  const res = await fetch('/api/files?path=' + encodeURIComponent(path));
-  const files = await res.json();
-  renderFiles(files || []);
+  try {
+    const res = await fetch('/api/files?path=' + encodeURIComponent(path));
+    if (!res.ok) {
+      const errText = await res.text();
+      showError(`加载失败: ${res.status} ${errText}`);
+      return;
+    }
+    const files = await res.json();
+    renderFiles(files || []);
+  } catch (e) {
+    showError(`加载失败: ${e.message}`);
+  }
 }
 
 function updateBreadcrumb(path) {
   const parts = path.split('/').filter(Boolean);
   const crumb = document.getElementById('breadcrumb');
-  crumb.innerHTML = '<span data-path="/">根目录</span>';
+  crumb.innerHTML = '<span data-path="">根目录</span>';
   let built = '';
   parts.forEach(part => {
     built += '/' + part;
     const p = built;
-    crumb.innerHTML += ` / <span data-path="${p}">${part}</span>`;
+    crumb.innerHTML += ` / <span data-path="${escapeHtml(p)}">${escapeHtml(part)}</span>`;
   });
   crumb.querySelectorAll('span').forEach(s => {
     s.addEventListener('click', () => loadFiles(s.dataset.path));
@@ -40,11 +66,15 @@ function renderFiles(files) {
     div.innerHTML = `
       <span class="file-icon">${icon}</span>
       <div class="file-info">
-        <div class="file-name">${f.name}</div>
-        <div class="file-meta">${size}</div>
+        <div class="file-name"></div>
+        <div class="file-meta">${escapeHtml(size)}</div>
       </div>
-      ${f.isDir ? '' : `<span class="download-btn" data-path="${f.path}">⬇️</span>`}
+      ${f.isDir ? '' : `<span class="download-btn">⬇️</span>`}
     `;
+    div.querySelector('.file-name').textContent = f.name;
+    if (!f.isDir) {
+      div.querySelector('.download-btn').dataset.path = f.path;
+    }
     if (f.isDir) {
       div.addEventListener('click', () => loadFiles(f.path));
     } else {
@@ -79,6 +109,9 @@ document.getElementById('upload-input').addEventListener('change', async functio
   const text = document.getElementById('progress-text');
   bar.classList.remove('hidden');
 
+  let successCount = 0;
+  let failCount = 0;
+
   for (let i = 0; i < files.length; i++) {
     const f = files[i];
     const pct = Math.round(((i) / files.length) * 100);
@@ -87,14 +120,25 @@ document.getElementById('upload-input').addEventListener('change', async functio
 
     const fd = new FormData();
     fd.append('file', f);
-    await fetch('/api/upload?path=' + encodeURIComponent(currentPath), { method: 'POST', body: fd });
+    try {
+      const res = await fetch('/api/upload?path=' + encodeURIComponent(currentPath), { method: 'POST', body: fd });
+      if (res.ok) {
+        successCount++;
+      } else {
+        failCount++;
+      }
+    } catch (e) {
+      failCount++;
+    }
   }
   fill.style.width = '100%';
-  text.textContent = '上传完成';
+  text.textContent = failCount === 0
+    ? `上传完成 ${successCount} 成功`
+    : `上传完成 ${successCount} 成功 ${failCount} 失败`;
   setTimeout(() => bar.classList.add('hidden'), 2000);
   this.value = '';
   loadFiles(currentPath);
 });
 
 // Start
-loadFiles('/Users');
+loadFiles('');
