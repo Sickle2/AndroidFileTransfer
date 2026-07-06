@@ -85,3 +85,53 @@ func TestWiFiServerUploadAPI(t *testing.T) {
 		t.Errorf("expected 'upload content', got %q", content)
 	}
 }
+
+func TestResolvePathRejectsTraversal(t *testing.T) {
+	dir := t.TempDir()
+	srv := &WiFiServer{rootDir: dir}
+
+	_, err := srv.resolvePath("../../../../etc/passwd")
+	if err == nil {
+		t.Fatal("expected error for path traversal, got nil")
+	}
+}
+
+func TestResolvePathRejectsAbsoluteOutside(t *testing.T) {
+	dir := t.TempDir()
+	srv := &WiFiServer{rootDir: dir}
+
+	_, err := srv.resolvePath("/etc/passwd")
+	if err == nil {
+		t.Fatal("expected error for absolute path outside root, got nil")
+	}
+}
+
+func TestResolvePathAllowsInside(t *testing.T) {
+	dir := t.TempDir()
+	srv := &WiFiServer{rootDir: dir}
+
+	os.MkdirAll(filepath.Join(dir, "sub"), 0o755)
+	resolved, err := srv.resolvePath(filepath.Join(dir, "sub"))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if !strings.HasPrefix(resolved, dir) {
+		t.Errorf("expected resolved path to be within %q, got %q", dir, resolved)
+	}
+}
+
+func TestDownloadRejectsTraversal(t *testing.T) {
+	dir := t.TempDir()
+	srv := &WiFiServer{rootDir: dir}
+	ts := httptest.NewServer(srv.handler())
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/api/download?path=../../../../etc/passwd")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d", resp.StatusCode)
+	}
+}

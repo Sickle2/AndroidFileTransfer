@@ -2,6 +2,7 @@ package connection
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -10,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"AndroidFileTransfer/internal/model"
 	"AndroidFileTransfer/internal/util"
@@ -24,10 +26,38 @@ type WiFiServer struct {
 	uiFS    fs.FS  // embedded android-ui filesystem, injected by main package
 }
 
-// NewWiFiServer creates a server with the user's home dir as root.
-func NewWiFiServer() *WiFiServer {
-	home, _ := os.UserHomeDir()
-	return &WiFiServer{rootDir: home, uiFS: nil}
+// NewWiFiServer creates a server restricted to rootDir. If rootDir is empty,
+// the user's home directory is used as the root.
+func NewWiFiServer(rootDir string) *WiFiServer {
+	if rootDir == "" {
+		home, _ := os.UserHomeDir()
+		rootDir = home
+	}
+	abs, err := filepath.Abs(filepath.Clean(rootDir))
+	if err != nil {
+		abs = filepath.Clean(rootDir)
+	}
+	return &WiFiServer{rootDir: abs, uiFS: nil}
+}
+
+// resolvePath resolves userPath against rootDir and ensures the result stays
+// within rootDir. userPath may be relative (interpreted relative to rootDir)
+// or absolute. Returns an error if the resolved path escapes rootDir.
+func (s *WiFiServer) resolvePath(userPath string) (string, error) {
+	var candidate string
+	if filepath.IsAbs(userPath) {
+		candidate = userPath
+	} else {
+		candidate = filepath.Join(s.rootDir, userPath)
+	}
+	cleaned, err := filepath.Abs(filepath.Clean(candidate))
+	if err != nil {
+		return "", err
+	}
+	if cleaned != s.rootDir && !strings.HasPrefix(cleaned, s.rootDir+string(os.PathSeparator)) {
+		return "", errors.New("禁止访问根目录外的路径")
+	}
+	return cleaned, nil
 }
 
 // Start finds a free port (8080-8084) and begins serving.
@@ -100,6 +130,11 @@ func (s *WiFiServer) handleFiles(w http.ResponseWriter, r *http.Request) {
 	if path == "" {
 		path = s.rootDir
 	}
+	path, err := s.resolvePath(path)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 	entries, err := os.ReadDir(path)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -122,6 +157,11 @@ func (s *WiFiServer) handleFiles(w http.ResponseWriter, r *http.Request) {
 
 func (s *WiFiServer) handleDownload(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Query().Get("path")
+	path, err := s.resolvePath(path)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 	f, err := os.Open(path)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
@@ -139,6 +179,11 @@ func (s *WiFiServer) handleUpload(w http.ResponseWriter, r *http.Request) {
 	if destDir == "" {
 		destDir = s.rootDir
 	}
+	destDir, err := s.resolvePath(destDir)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -149,7 +194,7 @@ func (s *WiFiServer) handleUpload(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		defer src.Close()
-		dst, err := os.Create(filepath.Join(destDir, fh.Filename))
+		dst, err := os.Create(filepath.Join(destDir, filepath.Base(fh.Filename)))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
