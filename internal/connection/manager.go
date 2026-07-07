@@ -243,3 +243,19 @@ func (m *Manager) Upload(deviceID, localPath, remotePath string) error {
 func (m *Manager) SubscribeProgress() <-chan model.TransferProgress {
 	return m.broadcaster.Subscribe()
 }
+
+// WiFiAddress delegates to the underlying WiFiServer.Address().
+func (m *Manager) WiFiAddress() string {
+	return m.wifiSrv.Address()
+}
+
+// WiFiQRCode delegates to the underlying WiFiServer.QRCode().
+func (m *Manager) WiFiQRCode() string {
+	return m.wifiSrv.QRCode()
+}
+
+// WiFiServer returns the underlying WiFiServer so callers (in package main) can
+// call SetUIFS before Start().
+func (m *Manager) WiFiServer() *WiFiServer {
+	return m.wifiSrv
+}

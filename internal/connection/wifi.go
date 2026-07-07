@@ -107,6 +107,10 @@ func (s *WiFiServer) Address() string { return s.address }
 // QRCode returns a PNG data URI for the server URL.
 func (s *WiFiServer) QRCode() string { return s.qrCode }
 
+// SetUIFS injects the embedded android-ui filesystem so it is served at "/".
+// Must be called before Start().
+func (s *WiFiServer) SetUIFS(uiFS fs.FS) { s.uiFS = uiFS }
+
 // handler builds the HTTP mux (exported for testing with httptest).
 func (s *WiFiServer) handler() http.Handler {
 	mux := http.NewServeMux()
