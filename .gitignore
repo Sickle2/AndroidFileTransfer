@@ -3,3 +3,6 @@ node_modules
 frontend/dist
 /AndroidFileTransfer
 frontend/package.json.md5
+.superpowers/
+.claude/
+.codegraph/
