@@ -1,5 +1,6 @@
 import React from 'react';
-import type { Device } from '../../wailsjs/go/main/App';
+import type { model } from '../../wailsjs/go/models';
+type Device = model.Device;
 
 interface DeviceListProps {
     devices: Device[];

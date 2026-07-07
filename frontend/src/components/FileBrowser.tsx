@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { GetFileList, Download, Upload } from '../../wailsjs/go/main/App';
-import type { Device, FileInfo } from '../../wailsjs/go/main/App';
+import type { model } from '../../wailsjs/go/models';
+type Device = model.Device;
+type FileInfo = model.FileInfo;
 
 interface FileBrowserProps {
     device: Device | null;

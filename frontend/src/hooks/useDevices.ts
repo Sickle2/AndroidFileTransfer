@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { ListDevices } from '../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime';
-import type { Device } from '../../wailsjs/go/main/App';
+import type { model } from '../../wailsjs/go/models';
+type Device = model.Device;
 
 export interface TransferProgress {
     deviceId: string;

@@ -5,7 +5,8 @@ import { FileBrowser } from './components/FileBrowser';
 import { TransferQueue } from './components/TransferQueue';
 import { QRCodeDisplay } from './components/QRCodeDisplay';
 import { GetWiFiAddress, GetWiFiQRCode } from '../wailsjs/go/main/App';
-import type { Device } from '../wailsjs/go/main/App';
+import type { model } from '../wailsjs/go/models';
+type Device = model.Device;
 import './styles/app.css';
 
 interface QRState {
