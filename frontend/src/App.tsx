@@ -1,28 +1,72 @@
-import {useState} from 'react';
-import logo from './assets/images/logo-universal.png';
-import './App.css';
-import {Greet} from "../wailsjs/go/main/App";
+import React, { useState } from 'react';
+import { useDevices } from './hooks/useDevices';
+import { DeviceList } from './components/DeviceList';
+import { FileBrowser } from './components/FileBrowser';
+import { TransferQueue } from './components/TransferQueue';
+import { QRCodeDisplay } from './components/QRCodeDisplay';
+import { GetWiFiAddress, GetWiFiQRCode } from '../wailsjs/go/main/App';
+import type { Device } from '../wailsjs/go/main/App';
+import './styles/app.css';
 
-function App() {
-    const [resultText, setResultText] = useState("Please enter your name below 👇");
-    const [name, setName] = useState('');
-    const updateName = (e: any) => setName(e.target.value);
-    const updateResultText = (result: string) => setResultText(result);
-
-    function greet() {
-        Greet(name).then(updateResultText);
-    }
-
-    return (
-        <div id="App">
-            <img src={logo} id="logo" alt="logo"/>
-            <div id="result" className="result">{resultText}</div>
-            <div id="input" className="input-box">
-                <input id="name" className="input" onChange={updateName} autoComplete="off" name="input" type="text"/>
-                <button className="btn" onClick={greet}>Greet</button>
-            </div>
-        </div>
-    )
+interface QRState {
+    address: string;
+    qrCode: string;
 }
 
-export default App
+function App() {
+    const { devices, loading, progress } = useDevices();
+    const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+    const [qrState, setQrState] = useState<QRState | null>(null);
+
+    const handleSelectDevice = (device: Device) => {
+        setSelectedDevice(device);
+    };
+
+    const handleShowQR = async (_device: Device) => {
+        try {
+            const [address, qrCode] = await Promise.all([
+                GetWiFiAddress(),
+                GetWiFiQRCode(),
+            ]);
+            setQrState({ address, qrCode });
+        } catch (err) {
+            console.error('Failed to get WiFi info:', err);
+        }
+    };
+
+    const handleCloseQR = () => {
+        setQrState(null);
+    };
+
+    return (
+        <div className="app-root">
+            <div className="app-main">
+                <aside className="app-sidebar">
+                    <DeviceList
+                        devices={devices}
+                        loading={loading}
+                        selectedDevice={selectedDevice}
+                        onSelect={handleSelectDevice}
+                        onShowQR={handleShowQR}
+                    />
+                </aside>
+                <main className="app-content">
+                    <FileBrowser device={selectedDevice} />
+                </main>
+            </div>
+            <footer className="app-footer">
+                <TransferQueue progress={progress} />
+            </footer>
+
+            {qrState && (
+                <QRCodeDisplay
+                    address={qrState.address}
+                    qrCode={qrState.qrCode}
+                    onClose={handleCloseQR}
+                />
+            )}
+        </div>
+    );
+}
+
+export default App;
