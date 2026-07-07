@@ -5,3 +5,27 @@
 export function Greet(arg1) {
     return window['go']['main']['App']['Greet'](arg1);
 }
+
+export function ListDevices() {
+    return window['go']['main']['App']['ListDevices']();
+}
+
+export function GetFileList(arg1, arg2) {
+    return window['go']['main']['App']['GetFileList'](arg1, arg2);
+}
+
+export function Download(arg1, arg2, arg3) {
+    return window['go']['main']['App']['Download'](arg1, arg2, arg3);
+}
+
+export function Upload(arg1, arg2, arg3) {
+    return window['go']['main']['App']['Upload'](arg1, arg2, arg3);
+}
+
+export function GetWiFiAddress() {
+    return window['go']['main']['App']['GetWiFiAddress']();
+}
+
+export function GetWiFiQRCode() {
+    return window['go']['main']['App']['GetWiFiQRCode']();
+}
