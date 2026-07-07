@@ -116,7 +116,7 @@ export function FileBrowser({ device }: FileBrowserProps) {
     if (!device) {
         return (
             <div className="file-browser file-browser--empty">
-                <p>Select a device to browse files</p>
+                <p>请先选择设备</p>
             </div>
         );
     }
@@ -142,25 +142,25 @@ export function FileBrowser({ device }: FileBrowserProps) {
                         className="btn btn-secondary"
                         onClick={navigateUp}
                         disabled={currentPath === '/'}
-                        title="Go up"
+                        title="返回上级"
                     >
-                        ↑ Up
+                        ↑ 上级
                     </button>
                     <button
                         className="btn btn-primary"
                         onClick={handleUpload}
-                        title="Upload file"
+                        title="上传文件"
                     >
-                        Upload
+                        上传文件
                     </button>
                 </div>
             </div>
 
-            {loading && <div className="file-browser-status">Loading...</div>}
+            {loading && <div className="file-browser-status">加载中...</div>}
             {error && <div className="file-browser-error">{error}</div>}
 
             {!loading && !error && files.length === 0 && (
-                <div className="file-browser-status">Empty directory</div>
+                <div className="file-browser-status">此目录为空</div>
             )}
 
             <div className="file-list" role="list">
@@ -171,7 +171,7 @@ export function FileBrowser({ device }: FileBrowserProps) {
                         role="listitem"
                         onDoubleClick={() => file.isDir && handleDirectoryClick(file)}
                         onClick={() => !file.isDir && handleFileDownload(file)}
-                        title={file.isDir ? 'Double-click to open' : 'Click to download'}
+                        title={file.isDir ? '双击打开' : '点击下载'}
                     >
                         <span className="file-icon">{file.isDir ? '📁' : '📄'}</span>
                         <span className="file-name">{file.name}</span>

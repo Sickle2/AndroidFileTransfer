@@ -20,32 +20,32 @@ export function QRCodeDisplay({ address, qrCode, onClose }: QRCodeDisplayProps) 
     };
 
     return (
-        <div className="modal-backdrop" onClick={handleBackdropClick} role="dialog" aria-modal="true" aria-label="WiFi QR Code">
+        <div className="modal-backdrop" onClick={handleBackdropClick} role="dialog" aria-modal="true" aria-label="WiFi 二维码">
             <div className="modal-content">
                 <div className="modal-header">
-                    <h3>Connect via WiFi</h3>
-                    <button className="modal-close-btn" onClick={onClose} aria-label="Close">✕</button>
+                    <h3>通过 WiFi 连接</h3>
+                    <button className="modal-close-btn" onClick={onClose} aria-label="关闭">✕</button>
                 </div>
                 <div className="modal-body">
                     {qrCode && (
                         <img
                             src={qrCode}
-                            alt="WiFi QR Code"
+                            alt="WiFi 二维码"
                             className="qr-image"
                         />
                     )}
-                    {!qrCode && <div className="qr-placeholder">Loading QR code...</div>}
+                    {!qrCode && <div className="qr-placeholder">二维码生成中...</div>}
                     <div className="qr-address">
-                        <span className="qr-address-label">Address:</span>
+                        <span className="qr-address-label">地址：</span>
                         <code className="qr-address-value">{address}</code>
                     </div>
                 </div>
                 <div className="modal-footer">
                     <button className="btn btn-primary" onClick={handleCopy}>
-                        Copy Link
+                        复制链接
                     </button>
                     <button className="btn btn-secondary" onClick={onClose}>
-                        Close
+                        关闭
                     </button>
                 </div>
             </div>

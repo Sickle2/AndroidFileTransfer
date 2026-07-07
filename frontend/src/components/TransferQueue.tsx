@@ -9,7 +9,7 @@ export function TransferQueue({ progress }: TransferQueueProps) {
     if (progress.length === 0) {
         return (
             <div className="transfer-queue transfer-queue--empty">
-                <span className="transfer-queue-idle">No active transfers</span>
+                <span className="transfer-queue-idle">无传输任务</span>
             </div>
         );
     }
@@ -24,7 +24,7 @@ export function TransferQueue({ progress }: TransferQueueProps) {
 
                 return (
                     <div
-                        key={`${item.deviceId}-${item.fileName}-${idx}`}
+                        key={`${item.deviceId}-${item.fileName}`}
                         className={`transfer-item ${hasError ? 'transfer-item--error' : ''}`}
                     >
                         <span className="transfer-filename" title={item.fileName}>

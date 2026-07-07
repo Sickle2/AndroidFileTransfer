@@ -20,9 +20,9 @@ function deviceIcon(type: string): string {
 
 function statusLabel(status: string): string {
     switch (status.toLowerCase()) {
-        case 'connected': return 'Connected';
-        case 'disconnected': return 'Disconnected';
-        case 'available': return 'Available';
+        case 'connected': return '已连接';
+        case 'disconnected': return '已断开';
+        case 'available': return '可用';
         default: return status;
     }
 }
@@ -32,23 +32,20 @@ export function DeviceList({ devices, loading, selectedDevice, onSelect, onShowQ
 
     const handleDeviceClick = (device: Device) => {
         onSelect(device);
-        if (device.type.toLowerCase() === 'wifi') {
-            onShowQR(device);
-        }
     };
 
     return (
         <div className="device-list">
             <div className="device-list-header">
-                <h3>Devices</h3>
+                <h3>设备</h3>
             </div>
 
             {loading && devices.length === 0 && (
-                <div className="device-list-empty">Scanning for devices...</div>
+                <div className="device-list-empty">正在扫描设备...</div>
             )}
 
             {!loading && devices.length === 0 && (
-                <div className="device-list-empty">No devices found</div>
+                <div className="device-list-empty">未发现设备</div>
             )}
 
             <ul className="device-list-items">
@@ -71,10 +68,10 @@ export function DeviceList({ devices, loading, selectedDevice, onSelect, onShowQ
                         {device.type.toLowerCase() === 'wifi' && (
                             <button
                                 className="device-qr-btn"
-                                title="Show QR Code"
+                                title="显示二维码"
                                 onClick={e => { e.stopPropagation(); onShowQR(device); }}
                             >
-                                QR
+                                二维码
                             </button>
                         )}
                     </li>
@@ -83,7 +80,7 @@ export function DeviceList({ devices, loading, selectedDevice, onSelect, onShowQ
 
             {!hasAdb && (
                 <div className="adb-hint">
-                    <p>ADB not detected. To connect via USB, install Android Debug Bridge (ADB) and enable USB debugging on your device.</p>
+                    <p>未检测到 ADB。如需通过 USB 连接，请安装 Android Debug Bridge (ADB) 并在设备上启用 USB 调试。</p>
                 </div>
             )}
         </div>
