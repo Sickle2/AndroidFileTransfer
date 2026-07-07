@@ -71,7 +71,7 @@ func parseADBDevices(output string) []model.Device {
 func (m *ADBManager) ListFiles(serial, path string) ([]model.FileInfo, error) {
 	out, err := m.runCmd("-s", serial, "shell", "ls", "-la", path)
 	if err != nil {
-		return nil, fmt.Errorf("adb ls: %w", err)
+		return nil, fmt.Errorf("列出文件失败: %w", err)
 	}
 	return parseADBFiles(out, path), nil
 }
@@ -124,15 +124,19 @@ func parseADBFiles(output, dir string) []model.FileInfo {
 func (m *ADBManager) Pull(serial, remotePath, localPath string) error {
 	slog.Info("adb pull", "serial", serial, "remote", remotePath, "local", localPath)
 	if err := os.MkdirAll(filepath.Dir(localPath), 0o755); err != nil {
-		return err
+		return fmt.Errorf("下载失败: %w", err)
 	}
-	_, err := m.runCmd("-s", serial, "pull", remotePath, localPath)
-	return err
+	if _, err := m.runCmd("-s", serial, "pull", remotePath, localPath); err != nil {
+		return fmt.Errorf("下载失败: %w", err)
+	}
+	return nil
 }
 
 // Push uploads a file from localPath to the device.
 func (m *ADBManager) Push(serial, localPath, remotePath string) error {
 	slog.Info("adb push", "serial", serial, "local", localPath, "remote", remotePath)
-	_, err := m.runCmd("-s", serial, "push", localPath, remotePath)
-	return err
+	if _, err := m.runCmd("-s", serial, "push", localPath, remotePath); err != nil {
+		return fmt.Errorf("上传失败: %w", err)
+	}
+	return nil
 }

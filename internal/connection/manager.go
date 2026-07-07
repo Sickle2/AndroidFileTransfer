@@ -41,7 +41,7 @@ func NewManager(wifiSrv *WiFiServer, adbMgr *ADBManager) *Manager {
 // Start launches the WiFiServer and begins ADB device polling (every 2 s).
 func (m *Manager) Start() error {
 	if err := m.wifiSrv.Start(); err != nil {
-		return fmt.Errorf("manager: WiFiServer start: %w", err)
+		return fmt.Errorf("WiFi 服务启动失败: %w", err)
 	}
 
 	if m.adbMgr == nil {
@@ -125,12 +125,12 @@ func (m *Manager) GetFileList(deviceID, path string) ([]model.FileInfo, error) {
 		return m.wifiFileList(path)
 	case strings.HasPrefix(deviceID, "adb:"):
 		if m.adbMgr == nil {
-			return nil, fmt.Errorf("manager: ADB not available")
+			return nil, fmt.Errorf("ADB 不可用")
 		}
 		serial := strings.TrimPrefix(deviceID, "adb:")
 		return m.adbMgr.ListFiles(serial, path)
 	default:
-		return nil, fmt.Errorf("manager: unknown deviceID prefix: %q", deviceID)
+		return nil, fmt.Errorf("未知的设备 ID 前缀: %q", deviceID)
 	}
 }
 
@@ -142,11 +142,11 @@ func (m *Manager) wifiFileList(path string) ([]model.FileInfo, error) {
 	}
 	resolved, err := m.wifiSrv.resolvePath(path)
 	if err != nil {
-		return nil, fmt.Errorf("manager: path outside root: %w", err)
+		return nil, fmt.Errorf("路径超出根目录: %w", err)
 	}
 	entries, err := os.ReadDir(resolved)
 	if err != nil {
-		return nil, fmt.Errorf("manager: ReadDir %q: %w", resolved, err)
+		return nil, fmt.Errorf("读取目录失败: %w", err)
 	}
 	files := make([]model.FileInfo, 0, len(entries))
 	for _, e := range entries {
@@ -171,10 +171,10 @@ func (m *Manager) wifiFileList(path string) ([]model.FileInfo, error) {
 func (m *Manager) Download(deviceID, remotePath, localPath string) error {
 	switch {
 	case strings.HasPrefix(deviceID, "wifi:"):
-		return fmt.Errorf("manager: WiFi download is handled by HTTP server")
+		return fmt.Errorf("WiFi 下载由 HTTP 服务器处理")
 	case strings.HasPrefix(deviceID, "adb:"):
 		if m.adbMgr == nil {
-			return fmt.Errorf("manager: ADB not available")
+			return fmt.Errorf("ADB 不可用")
 		}
 		serial := strings.TrimPrefix(deviceID, "adb:")
 		m.broadcaster.Publish(model.TransferProgress{
@@ -198,7 +198,7 @@ func (m *Manager) Download(deviceID, remotePath, localPath string) error {
 		})
 		return nil
 	default:
-		return fmt.Errorf("manager: unknown deviceID prefix: %q", deviceID)
+		return fmt.Errorf("未知的设备 ID 前缀: %q", deviceID)
 	}
 }
 
@@ -208,10 +208,10 @@ func (m *Manager) Download(deviceID, remotePath, localPath string) error {
 func (m *Manager) Upload(deviceID, localPath, remotePath string) error {
 	switch {
 	case strings.HasPrefix(deviceID, "wifi:"):
-		return fmt.Errorf("manager: WiFi upload is handled by HTTP server")
+		return fmt.Errorf("WiFi 上传由 HTTP 服务器处理")
 	case strings.HasPrefix(deviceID, "adb:"):
 		if m.adbMgr == nil {
-			return fmt.Errorf("manager: ADB not available")
+			return fmt.Errorf("ADB 不可用")
 		}
 		serial := strings.TrimPrefix(deviceID, "adb:")
 		m.broadcaster.Publish(model.TransferProgress{
@@ -235,7 +235,7 @@ func (m *Manager) Upload(deviceID, localPath, remotePath string) error {
 		})
 		return nil
 	default:
-		return fmt.Errorf("manager: unknown deviceID prefix: %q", deviceID)
+		return fmt.Errorf("未知的设备 ID 前缀: %q", deviceID)
 	}
 }
 

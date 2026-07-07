@@ -74,7 +74,7 @@ func (s *WiFiServer) Start() error {
 		}
 	}
 	if ln == nil {
-		return fmt.Errorf("WiFiServer: no free port in range 8080-8084")
+		return fmt.Errorf("启动 WiFi 服务失败：端口 8080-8084 均被占用")
 	}
 
 	ip, err := util.GetLocalIP()
@@ -146,7 +146,10 @@ func (s *WiFiServer) handleFiles(w http.ResponseWriter, r *http.Request) {
 	}
 	var files []model.FileInfo
 	for _, e := range entries {
-		info, _ := e.Info()
+		info, err := e.Info()
+		if err != nil {
+			continue
+		}
 		files = append(files, model.FileInfo{
 			Name:    e.Name(),
 			Path:    filepath.Join(path, e.Name()),
@@ -172,7 +175,11 @@ func (s *WiFiServer) handleDownload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer f.Close()
-	info, _ := f.Stat()
+	info, err := f.Stat()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Disposition", "attachment; filename="+filepath.Base(path))
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", info.Size()))
 	io.Copy(w, f)

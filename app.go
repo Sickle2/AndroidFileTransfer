@@ -77,37 +77,19 @@ func (a *App) GetFileList(deviceID, path string) ([]model.FileInfo, error) {
 }
 
 // Download transfers a file from an ADB device to localPath on the Mac.
-// A "transfer:progress" event is emitted upon completion (or failure).
+// Progress and completion "transfer:progress" events are emitted by the
+// Manager's broadcaster (fanned out in startup), so this method does not
+// emit them itself to avoid duplicate completion events.
 func (a *App) Download(deviceID, remotePath, localPath string) error {
-	err := a.manager.Download(deviceID, remotePath, localPath)
-	progress := model.TransferProgress{
-		DeviceID: deviceID,
-		FileName: remotePath,
-	}
-	if err != nil {
-		progress.Error = err.Error()
-	} else {
-		progress.BytesDone = -1 // sentinel: transfer completed
-	}
-	runtime.EventsEmit(a.ctx, "transfer:progress", progress)
-	return err
+	return a.manager.Download(deviceID, remotePath, localPath)
 }
 
 // Upload transfers a file from the Mac to an ADB device at remotePath.
-// A "transfer:progress" event is emitted upon completion (or failure).
+// Progress and completion "transfer:progress" events are emitted by the
+// Manager's broadcaster (fanned out in startup), so this method does not
+// emit them itself to avoid duplicate completion events.
 func (a *App) Upload(deviceID, localPath, remotePath string) error {
-	err := a.manager.Upload(deviceID, localPath, remotePath)
-	progress := model.TransferProgress{
-		DeviceID: deviceID,
-		FileName: localPath,
-	}
-	if err != nil {
-		progress.Error = err.Error()
-	} else {
-		progress.BytesDone = -1 // sentinel: transfer completed
-	}
-	runtime.EventsEmit(a.ctx, "transfer:progress", progress)
-	return err
+	return a.manager.Upload(deviceID, localPath, remotePath)
 }
 
 // GetWiFiAddress returns the URL the Android browser should open (e.g. http://192.168.1.x:8080).

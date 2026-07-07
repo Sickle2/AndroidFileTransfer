@@ -7,7 +7,6 @@ interface DeviceListProps {
     loading: boolean;
     selectedDevice: Device | null;
     onSelect: (device: Device) => void;
-    onShowQR: (device: Device) => void;
 }
 
 function deviceIcon(type: string): string {
@@ -28,7 +27,7 @@ function statusLabel(status: string): string {
     }
 }
 
-export function DeviceList({ devices, loading, selectedDevice, onSelect, onShowQR }: DeviceListProps) {
+export function DeviceList({ devices, loading, selectedDevice, onSelect }: DeviceListProps) {
     const hasAdb = devices.some(d => d.type.toLowerCase() === 'adb');
 
     const handleDeviceClick = (device: Device) => {
@@ -66,15 +65,6 @@ export function DeviceList({ devices, loading, selectedDevice, onSelect, onShowQ
                                 {statusLabel(device.status)}
                             </span>
                         </span>
-                        {device.type.toLowerCase() === 'wifi' && (
-                            <button
-                                className="device-qr-btn"
-                                title="显示二维码"
-                                onClick={e => { e.stopPropagation(); onShowQR(device); }}
-                            >
-                                二维码
-                            </button>
-                        )}
                     </li>
                 ))}
             </ul>

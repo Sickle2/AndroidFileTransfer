@@ -43,6 +43,7 @@ func main() {
 		},
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
 		OnStartup:        app.startup,
+		OnShutdown:       app.shutdown,
 		// OnBeforeClose is called when the user closes the window; Stop the
 		// backend services gracefully.  Returning false lets the window close.
 		OnBeforeClose: func(ctx context.Context) bool {

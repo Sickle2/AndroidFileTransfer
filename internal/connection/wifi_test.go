@@ -55,7 +55,10 @@ func TestWiFiServerDownloadAPI(t *testing.T) {
 	ts := httptest.NewServer(srv.handler())
 	defer ts.Close()
 
-	resp, _ := http.Get(ts.URL + "/api/download?path=" + filePath)
+	resp, err := http.Get(ts.URL + "/api/download?path=" + filePath)
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 	if string(body) != "file content" {

@@ -358,6 +358,50 @@ html, body, #root {
     text-overflow: ellipsis;
     max-width: 120px;
 }
+.transfer-item--done {
+    border-color: #34a853;
+    background: #e6f4ea;
+}
+.transfer-done {
+    font-size: 11px;
+    font-weight: 500;
+    color: #34a853;
+    white-space: nowrap;
+}
+.transfer-progress-fill--indeterminate {
+    width: 40% !important;
+    animation: transfer-indeterminate 1.2s ease-in-out infinite;
+}
+@keyframes transfer-indeterminate {
+    0% {
+        margin-left: 0%;
+    }
+    50% {
+        margin-left: 60%;
+    }
+    100% {
+        margin-left: 0%;
+    }
+}
+
+/* WiFi Panel (desktop entry point: QR + address + instructions only) */
+.wifi-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 24px;
+    text-align: center;
+}
+.wifi-panel-hint {
+    margin: 0;
+    max-width: 320px;
+    color: #555;
+    font-size: 13px;
+    line-height: 1.5;
+}
 
 /* Modal */
 .modal-backdrop {
