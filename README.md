@@ -1,35 +1,35 @@
 # AndroidFileTransfer
 
-A macOS desktop app for transferring files between a Mac and an Android phone, built with [Wails](https://wails.io) (Go backend + React/TypeScript frontend).
+一款 macOS 桌面应用，用于在 Mac 和 Android 手机之间传输文件，基于 [Wails](https://wails.io) 构建（Go 后端 + React/TypeScript 前端）。
 
-Two transfer paths are supported, side by side:
+支持两种传输方式，可同时使用：
 
-- **WiFi**: the phone opens a URL in its browser (no app install, no cable) to browse/download/upload files against a local HTTP server run by the app.
-- **ADB (USB)**: with USB debugging enabled, the phone's file system (`/sdcard`) is browsed and files are pushed/pulled directly over USB.
+- **WiFi**：手机在浏览器中打开一个网址（无需安装应用、无需数据线）来浏览/下载/上传文件到应用运行的本地 HTTP 服务器。
+- **ADB（USB）**：启用 USB 调试后，可浏览手机的文件系统（`/sdcard`），并直接通过 USB 推送/拉取文件。
 
-## System requirements
+## 系统要求
 
-- macOS 12 (Monterey) or later, Apple Silicon or Intel
-- [ADB](https://developer.android.com/tools/adb) (`android-platform-tools`) installed for the USB path — optional if you only use WiFi transfer
-- An Android phone and Mac on the same local network for the WiFi path
+- macOS 12 (Monterey) 或更新版本，Apple Silicon 或 Intel 处理器
+- 若使用 USB 传输方式，需安装 [ADB](https://developer.android.com/tools/adb)（`android-platform-tools`）— 若仅使用 WiFi 传输则可选
+- 使用 WiFi 传输时，需要 Android 手机和 Mac 连接到同一个本地网络
 
-## Installing ADB
+## 安装 ADB
 
-The ADB (USB) transfer path requires the Android platform tools to be installed and available on your `PATH`. The easiest way on macOS is via Homebrew:
+ADB（USB）传输方式需要在系统中安装 Android 平台工具并将其添加到 `PATH` 中。在 macOS 上最简单的方法是使用 Homebrew：
 
 ```bash
 brew install android-platform-tools
 ```
 
-Verify it's installed:
+验证是否已安装：
 
 ```bash
 adb version
 ```
 
-If `adb` isn't found, the app still runs and falls back to WiFi-only mode — ADB devices simply won't appear in the device list.
+如果未找到 `adb`，应用仍能正常运行并自动降级到仅 WiFi 模式 — ADB 设备不会出现在设备列表中。
 
-## Building and running
+## 构建和运行
 
 ```bash
 # install frontend deps and build
@@ -42,34 +42,34 @@ wails dev
 wails build -platform darwin/universal
 ```
 
-The built app is placed at `build/bin/AndroidFileTransfer.app`.
+构建完成的应用位于 `build/bin/AndroidFileTransfer.app`。
 
-## Using WiFi transfer
+## 使用 WiFi 传输
 
-1. Make sure your Mac and Android phone are connected to the same WiFi network.
-2. Launch the app. It starts a local HTTP server and shows a QR code alongside an address like `http://192.168.1.x:8080`.
-3. On your phone, scan the QR code (or open the address manually in a mobile browser).
-4. Browse files from your Mac's home directory in the phone's browser: tap to download to the phone, or use the upload control to send a file from the phone to the Mac.
+1. 确保你的 Mac 和 Android 手机已连接到同一个 WiFi 网络。
+2. 启动应用。应用将启动一个本地 HTTP 服务器，并显示一个二维码以及形如 `http://192.168.1.x:8080` 的网址。
+3. 在手机上扫描二维码（或在移动浏览器中手动打开该网址）。
+4. 在手机浏览器中浏览 Mac 主目录中的文件：点击可下载到手机，或使用上传控件将手机上的文件发送到 Mac。
 
-No app installation is required on the Android phone — everything happens through the browser.
+Android 手机上无需安装任何应用 — 一切都通过浏览器完成。
 
-## Using ADB (USB) transfer
+## 使用 ADB（USB）传输
 
-1. On your Android phone, enable Developer Options (Settings → About phone → tap "Build number" 7 times).
-2. In Developer Options, enable **USB debugging**.
-3. Connect the phone to the Mac with a USB cable.
-4. The first time you connect, your phone will prompt **"Allow USB debugging?"** — tap Allow (and optionally "Always allow from this computer").
-5. The device should appear automatically in the app's device list. Browse `/sdcard`, and pull files to the Mac or push files from the Mac to the phone.
+1. 在 Android 手机上，启用开发者选项（设置 → 关于手机 → 连续点击"构建号" 7 次）。
+2. 在开发者选项中，启用 **USB 调试**。
+3. 使用 USB 数据线将手机连接到 Mac。
+4. 首次连接时，手机会提示 **"允许 USB 调试？"** — 点击"允许"（并可选择"始终允许来自此计算机的连接"）。
+5. 设备应会自动出现在应用的设备列表中。浏览 `/sdcard`，可从 Mac 拉取文件或推送文件到手机。
 
-If the device shows as "unauthorized," check the phone screen for the USB debugging permission prompt and accept it.
+如果设备显示为"未授权"，请查看手机屏幕上是否有 USB 调试权限提示，并接受它。
 
-## Troubleshooting
+## 故障排除
 
-- **ADB not installed**: the app shows a notice and continues in WiFi-only mode instead of crashing.
-- **Device unauthorized**: accept the "Allow USB debugging" prompt on the phone.
-- **WiFi ports unavailable**: the app tries a small range of ports (8080-8084); if all are in use, it reports an error rather than crashing. Free up a port or restart the app.
+- **ADB 未安装**：应用会显示提示并以仅 WiFi 模式继续运行，而不会崩溃。
+- **设备未授权**：在手机上接受"允许 USB 调试"的提示。
+- **WiFi 端口不可用**：应用会尝试一个较小的端口范围（8080-8084）；如果所有端口都被占用，应用将报告错误而不是崩溃。请释放一个端口或重新启动应用。
 
-## Development
+## 开发
 
 ```bash
 # run backend tests
