@@ -229,6 +229,46 @@ func TestBroadcaster_PublishAfterClose(t *testing.T) {
 	b.Publish(model.TransferProgress{DeviceID: "adb:x"})
 }
 
+// ---------------------------------------------------------------------------
+// Manager Stop and wifiFileList safety tests (Task 7 fixes)
+// ---------------------------------------------------------------------------
+
+// TestManagerStop_DoubleCallNoPanic verifies that calling Stop twice on a
+// real Manager does not panic (regression for sync.Once fix).
+func TestManagerStop_DoubleCallNoPanic(t *testing.T) {
+	srv := NewWiFiServer(t.TempDir())
+	mgr := NewManager(srv, nil)
+
+	// Start is required to have a running wifiSrv so Stop() can close it.
+	if err := mgr.Start(); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("second Stop() caused a panic: %v", r)
+		}
+	}()
+
+	mgr.Stop()
+	mgr.Stop() // must not panic
+}
+
+// TestManagerWifiFileList_OutOfBoundsPath verifies that wifiFileList returns
+// an error when given a path that escapes the WiFiServer's root directory.
+func TestManagerWifiFileList_OutOfBoundsPath(t *testing.T) {
+	root := t.TempDir()
+	srv := NewWiFiServer(root)
+	mgr := NewManager(srv, nil)
+
+	// "/etc/passwd" is an absolute path outside the temp root on any Unix host.
+	// On the CI host it may not exist, but the bounds check fires before ReadDir.
+	_, err := mgr.wifiFileList("/etc/passwd")
+	if err == nil {
+		t.Fatal("expected error for out-of-bounds path, got nil")
+	}
+}
+
 func TestBroadcaster_FullChannelDrops(t *testing.T) {
 	var b Broadcaster
 	ch := b.Subscribe() // capacity 16

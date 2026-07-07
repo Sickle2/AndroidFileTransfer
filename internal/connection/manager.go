@@ -22,8 +22,9 @@ type Manager struct {
 	mu         sync.RWMutex
 	adbDevices []model.Device
 
-	stopCh chan struct{}
-	wg     sync.WaitGroup
+	stopCh   chan struct{}
+	stopOnce sync.Once
+	wg       sync.WaitGroup
 }
 
 // NewManager creates a Manager with the given WiFiServer and ADBManager.
@@ -55,8 +56,9 @@ func (m *Manager) Start() error {
 }
 
 // Stop shuts down the WiFiServer, stops ADB polling, and closes the broadcaster.
+// Safe to call multiple times; subsequent calls are no-ops.
 func (m *Manager) Stop() {
-	close(m.stopCh)
+	m.stopOnce.Do(func() { close(m.stopCh) })
 	m.wg.Wait()
 	m.wifiSrv.Stop()
 	m.broadcaster.Close()
@@ -133,13 +135,18 @@ func (m *Manager) GetFileList(deviceID, path string) ([]model.FileInfo, error) {
 }
 
 // wifiFileList reads the local filesystem under the WiFiServer's root directory.
+// path is resolved and bounds-checked against rootDir before use.
 func (m *Manager) wifiFileList(path string) ([]model.FileInfo, error) {
 	if path == "" {
 		path = m.wifiSrv.rootDir
 	}
-	entries, err := os.ReadDir(path)
+	resolved, err := m.wifiSrv.resolvePath(path)
 	if err != nil {
-		return nil, fmt.Errorf("manager: ReadDir %q: %w", path, err)
+		return nil, fmt.Errorf("manager: path outside root: %w", err)
+	}
+	entries, err := os.ReadDir(resolved)
+	if err != nil {
+		return nil, fmt.Errorf("manager: ReadDir %q: %w", resolved, err)
 	}
 	files := make([]model.FileInfo, 0, len(entries))
 	for _, e := range entries {
@@ -149,7 +156,7 @@ func (m *Manager) wifiFileList(path string) ([]model.FileInfo, error) {
 		}
 		files = append(files, model.FileInfo{
 			Name:    e.Name(),
-			Path:    filepath.Join(path, e.Name()),
+			Path:    filepath.Join(resolved, e.Name()),
 			Size:    info.Size(),
 			IsDir:   e.IsDir(),
 			ModTime: info.ModTime(),
