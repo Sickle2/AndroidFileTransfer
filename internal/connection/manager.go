@@ -244,6 +244,54 @@ func (m *Manager) ShareConfig() model.ShareConfig {
 	return m.shareMgr.Config()
 }
 
+// SetShareMode updates the sharing mode ("selected" or "directory").
+func (m *Manager) SetShareMode(mode string) error {
+	if m.shareMgr == nil {
+		return fmt.Errorf("共享管理器未初始化")
+	}
+	return m.shareMgr.SetMode(model.ShareMode(mode))
+}
+
+// SetRootDir sets the root directory used in directory mode.
+func (m *Manager) SetRootDir(path string) error {
+	if m.shareMgr == nil {
+		return fmt.Errorf("共享管理器未初始化")
+	}
+	return m.shareMgr.SetRootDir(path)
+}
+
+// AddSharedPaths adds real Mac paths to the shared-items list.
+func (m *Manager) AddSharedPaths(paths []string) error {
+	if m.shareMgr == nil {
+		return fmt.Errorf("共享管理器未初始化")
+	}
+	return m.shareMgr.AddSharedPaths(paths)
+}
+
+// RemoveSharedItem removes the shared item with the given ID.
+func (m *Manager) RemoveSharedItem(id string) error {
+	if m.shareMgr == nil {
+		return fmt.Errorf("共享管理器未初始化")
+	}
+	return m.shareMgr.RemoveSharedItem(id)
+}
+
+// ClearSharedItems removes all shared items.
+func (m *Manager) ClearSharedItems() error {
+	if m.shareMgr == nil {
+		return fmt.Errorf("共享管理器未初始化")
+	}
+	return m.shareMgr.ClearSharedItems()
+}
+
+// SetUploadDir sets the directory where uploaded files are saved.
+func (m *Manager) SetUploadDir(path string) error {
+	if m.shareMgr == nil {
+		return fmt.Errorf("共享管理器未初始化")
+	}
+	return m.shareMgr.SetUploadDir(path)
+}
+
 // WiFiServer returns the underlying WiFiServer so callers (in package main) can
 // call SetUIFS before Start().
 func (m *Manager) WiFiServer() *WiFiServer {

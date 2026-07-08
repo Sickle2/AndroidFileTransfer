@@ -104,3 +104,38 @@ func (a *App) GetWiFiAddress() string {
 func (a *App) GetWiFiQRCode() string {
 	return a.manager.WiFiQRCode()
 }
+
+// GetShareConfig returns the current WiFi sharing configuration.
+func (a *App) GetShareConfig() model.ShareConfig {
+	return a.manager.ShareConfig()
+}
+
+// SetShareMode updates the sharing mode ("selected" or "directory").
+func (a *App) SetShareMode(mode string) error {
+	return a.manager.SetShareMode(mode)
+}
+
+// SetRootDir sets the root directory exposed in directory mode.
+func (a *App) SetRootDir(path string) error {
+	return a.manager.SetRootDir(path)
+}
+
+// AddSharedPaths adds real Mac file or folder paths to the shared list.
+func (a *App) AddSharedPaths(paths []string) error {
+	return a.manager.AddSharedPaths(paths)
+}
+
+// RemoveSharedItem removes the shared item with the given ID.
+func (a *App) RemoveSharedItem(id string) error {
+	return a.manager.RemoveSharedItem(id)
+}
+
+// ClearSharedItems removes all shared items.
+func (a *App) ClearSharedItems() error {
+	return a.manager.ClearSharedItems()
+}
+
+// SetUploadDir sets the directory where uploads from Android are saved.
+func (a *App) SetUploadDir(path string) error {
+	return a.manager.SetUploadDir(path)
+}
