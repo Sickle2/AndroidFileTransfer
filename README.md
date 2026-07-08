@@ -121,5 +121,3 @@ cd frontend && npm run build
 如果这个工具对你有帮助，欢迎请我喝杯咖啡 ☕
 
 <img src="docs/donate.png" alt="打赏码" width="200">
-
-> 把你的微信/支付宝收款码图片放到 `docs/donate.png` 即可显示。
