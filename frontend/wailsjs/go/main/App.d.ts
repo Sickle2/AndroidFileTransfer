@@ -6,6 +6,8 @@ export function AddSharedPaths(arg1:Array<string>):Promise<void>;
 
 export function ClearSharedItems():Promise<void>;
 
+export function ConfirmDirectoryMode():Promise<boolean>;
+
 export function Download(arg1:string,arg2:string,arg3:string):Promise<void>;
 
 export function GetFileList(arg1:string,arg2:string):Promise<Array<model.FileInfo>>;
@@ -19,6 +21,14 @@ export function GetWiFiQRCode():Promise<string>;
 export function ListDevices():Promise<Array<model.Device>>;
 
 export function RemoveSharedItem(arg1:string):Promise<void>;
+
+export function SelectFilesToShare():Promise<number>;
+
+export function SelectFolderToShare():Promise<boolean>;
+
+export function SelectRootDir():Promise<boolean>;
+
+export function SelectUploadDir():Promise<boolean>;
 
 export function SetRootDir(arg1:string):Promise<void>;
 

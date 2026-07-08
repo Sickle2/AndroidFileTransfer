@@ -10,6 +10,10 @@ export function ClearSharedItems() {
   return window['go']['main']['App']['ClearSharedItems']();
 }
 
+export function ConfirmDirectoryMode() {
+  return window['go']['main']['App']['ConfirmDirectoryMode']();
+}
+
 export function Download(arg1, arg2, arg3) {
   return window['go']['main']['App']['Download'](arg1, arg2, arg3);
 }
@@ -36,6 +40,22 @@ export function ListDevices() {
 
 export function RemoveSharedItem(arg1) {
   return window['go']['main']['App']['RemoveSharedItem'](arg1);
+}
+
+export function SelectFilesToShare() {
+  return window['go']['main']['App']['SelectFilesToShare']();
+}
+
+export function SelectFolderToShare() {
+  return window['go']['main']['App']['SelectFolderToShare']();
+}
+
+export function SelectRootDir() {
+  return window['go']['main']['App']['SelectRootDir']();
+}
+
+export function SelectUploadDir() {
+  return window['go']['main']['App']['SelectUploadDir']();
 }
 
 export function SetRootDir(arg1) {

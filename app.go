@@ -139,3 +139,96 @@ func (a *App) ClearSharedItems() error {
 func (a *App) SetUploadDir(path string) error {
 	return a.manager.SetUploadDir(path)
 }
+
+// ConfirmDirectoryMode shows a native confirmation dialog before switching to
+// directory mode (which exposes an entire folder). Returns true if the user
+// confirmed. Using a native dialog because window.confirm is unreliable in the
+// Wails macOS webview.
+func (a *App) ConfirmDirectoryMode() (bool, error) {
+	result, err := runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+		Type:          runtime.QuestionDialog,
+		Title:         "切换到高级模式",
+		Message:       "高级模式会把整个文件夹（含所有子文件）暴露给连接的手机。\n请确认该文件夹内没有隐私文件。是否继续？",
+		Buttons:       []string{"继续", "取消"},
+		DefaultButton: "取消",
+		CancelButton:  "取消",
+	})
+	if err != nil {
+		return false, err
+	}
+	return result == "继续", nil
+}
+
+// SelectFilesToShare opens a native multi-file picker and adds the chosen
+// files to the shared list. Returns the number of files selected (0 if the
+// user cancelled). The dialog must run on the Go side — the Wails runtime is
+// not exposed to the frontend.
+func (a *App) SelectFilesToShare() (int, error) {
+	paths, err := runtime.OpenMultipleFilesDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "选择要共享的文件",
+	})
+	if err != nil {
+		return 0, err
+	}
+	if len(paths) == 0 {
+		return 0, nil
+	}
+	if err := a.manager.AddSharedPaths(paths); err != nil {
+		return 0, err
+	}
+	return len(paths), nil
+}
+
+// SelectFolderToShare opens a native directory picker and adds the chosen
+// folder to the shared list. Returns true if a folder was added.
+func (a *App) SelectFolderToShare() (bool, error) {
+	dir, err := runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "选择要共享的文件夹",
+	})
+	if err != nil {
+		return false, err
+	}
+	if dir == "" {
+		return false, nil
+	}
+	if err := a.manager.AddSharedPaths([]string{dir}); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// SelectRootDir opens a native directory picker and sets the directory-mode
+// root. Returns true if a folder was chosen.
+func (a *App) SelectRootDir() (bool, error) {
+	dir, err := runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "选择共享根目录",
+	})
+	if err != nil {
+		return false, err
+	}
+	if dir == "" {
+		return false, nil
+	}
+	if err := a.manager.SetRootDir(dir); err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// SelectUploadDir opens a native directory picker and sets the upload
+// destination. Returns true if a folder was chosen.
+func (a *App) SelectUploadDir() (bool, error) {
+	dir, err := runtime.OpenDirectoryDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "选择接收目录",
+	})
+	if err != nil {
+		return false, err
+	}
+	if dir == "" {
+		return false, nil
+	}
+	if err := a.manager.SetUploadDir(dir); err != nil {
+		return false, err
+	}
+	return true, nil
+}

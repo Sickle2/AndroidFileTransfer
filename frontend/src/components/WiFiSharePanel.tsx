@@ -4,42 +4,17 @@ import {
     GetWiFiQRCode,
     GetShareConfig,
     SetShareMode,
-    SetRootDir,
-    AddSharedPaths,
+    ConfirmDirectoryMode,
     RemoveSharedItem,
     ClearSharedItems,
-    SetUploadDir,
+    SelectFilesToShare,
+    SelectFolderToShare,
+    SelectRootDir,
+    SelectUploadDir,
 } from '../../wailsjs/go/main/App';
 import type { model } from '../../wailsjs/go/models';
 
 type ShareConfig = model.ShareConfig;
-
-// runtime is the Wails runtime injected on window. Dialogs are optional at
-// build time so we guard every call.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const runtime = () => (window as any).runtime;
-
-async function pickFiles(): Promise<string[]> {
-    const rt = runtime();
-    if (rt && typeof rt.OpenMultipleFilesDialog === 'function') {
-        const paths: string[] | null = await rt.OpenMultipleFilesDialog({ Title: '选择要共享的文件' });
-        return paths || [];
-    }
-    if (rt && typeof rt.OpenFileDialog === 'function') {
-        const path: string = await rt.OpenFileDialog({ Title: '选择要共享的文件' });
-        return path ? [path] : [];
-    }
-    return [];
-}
-
-async function pickDirectory(title: string): Promise<string> {
-    const rt = runtime();
-    if (rt && typeof rt.OpenDirectoryDialog === 'function') {
-        const path: string = await rt.OpenDirectoryDialog({ Title: title });
-        return path || '';
-    }
-    return '';
-}
 
 export function WiFiSharePanel() {
     const [address, setAddress] = useState('');
@@ -101,39 +76,24 @@ export function WiFiSharePanel() {
 
     const handleModeChange = (mode: 'selected' | 'directory') => {
         if (!config || config.mode === mode) return;
-        if (mode === 'directory') {
-            const ok = window.confirm(
-                '高级模式会把整个文件夹（含所有子文件）暴露给连接的手机。\n' +
-                    '请确认该文件夹内没有隐私文件。是否继续？',
-            );
-            if (!ok) return;
-        }
-        run(() => SetShareMode(mode));
+        run(async () => {
+            // window.confirm is unreliable in the Wails webview, so directory
+            // mode is confirmed via a native Go-side dialog.
+            if (mode === 'directory') {
+                const ok = await ConfirmDirectoryMode();
+                if (!ok) return;
+            }
+            await SetShareMode(mode);
+        });
     };
 
-    const handleAddFiles = () =>
-        run(async () => {
-            const paths = await pickFiles();
-            if (paths.length > 0) await AddSharedPaths(paths);
-        });
-
-    const handleAddFolder = () =>
-        run(async () => {
-            const dir = await pickDirectory('选择要共享的文件夹');
-            if (dir) await AddSharedPaths([dir]);
-        });
-
-    const handleChooseRoot = () =>
-        run(async () => {
-            const dir = await pickDirectory('选择共享根目录');
-            if (dir) await SetRootDir(dir);
-        });
-
-    const handleChooseUpload = () =>
-        run(async () => {
-            const dir = await pickDirectory('选择接收目录');
-            if (dir) await SetUploadDir(dir);
-        });
+    // Native dialogs run on the Go side (the Wails runtime is not available on
+    // window), so each of these calls a bound App method that opens the picker
+    // and applies the result in one round-trip.
+    const handleAddFiles = () => run(() => SelectFilesToShare().then(() => undefined));
+    const handleAddFolder = () => run(() => SelectFolderToShare().then(() => undefined));
+    const handleChooseRoot = () => run(() => SelectRootDir().then(() => undefined));
+    const handleChooseUpload = () => run(() => SelectUploadDir().then(() => undefined));
 
     const handleRemove = (id: string) => run(() => RemoveSharedItem(id));
     const handleClear = () => run(() => ClearSharedItems());
