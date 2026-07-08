@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AndroidFileTransfer — Mac 与 Android 无线文件传输</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f7f8fa;
+      color: #1a1a2e;
+      line-height: 1.6;
+    }
+
+    /* NAV */
+    nav {
+      background: #fff;
+      border-bottom: 1px solid #e8e8e8;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    nav .logo { font-size: 18px; font-weight: 700; color: #1a73e8; text-decoration: none; }
+    nav .spacer { flex: 1; }
+    nav a { font-size: 14px; color: #555; text-decoration: none; }
+    nav a:hover { color: #1a73e8; }
+
+    /* HERO */
+    .hero {
+      background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
+      color: #fff;
+      padding: 72px 24px 60px;
+      text-align: center;
+    }
+    .hero-icon { font-size: 64px; line-height: 1; margin-bottom: 16px; }
+    .hero h1 { font-size: clamp(28px, 5vw, 44px); font-weight: 800; margin-bottom: 14px; }
+    .hero p { font-size: clamp(15px, 2.5vw, 18px); opacity: 0.9; max-width: 540px; margin: 0 auto 32px; }
+    .hero-btns { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+    .btn-primary {
+      display: inline-block;
+      background: #fff;
+      color: #1a73e8;
+      font-weight: 700;
+      font-size: 16px;
+      padding: 13px 32px;
+      border-radius: 10px;
+      text-decoration: none;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.22); }
+    .btn-secondary {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      font-size: 15px;
+      padding: 13px 24px;
+      border-radius: 10px;
+      text-decoration: none;
+      border: 1px solid rgba(255,255,255,0.4);
+      transition: background 0.15s;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.25); }
+    .hero-note { margin-top: 18px; font-size: 13px; opacity: 0.75; }
+
+    /* FEATURES */
+    .section { padding: 56px 24px; max-width: 960px; margin: 0 auto; }
+    .section-title {
+      text-align: center;
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 36px;
+      color: #1a1a2e;
+    }
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+    .feature-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 28px 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    }
+    .feature-icon { font-size: 36px; margin-bottom: 12px; }
+    .feature-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; color: #1a1a2e; }
+    .feature-card p { font-size: 14px; color: #555; line-height: 1.7; }
+
+    /* INSTALL */
+    .install-section { background: #fff; }
+    .install-section .section { max-width: 720px; }
+    .steps { list-style: none; counter-reset: step; }
+    .steps li {
+      counter-increment: step;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 20px;
+    }
+    .steps li::before {
+      content: counter(step);
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #1a73e8;
+      color: #fff;
+      font-weight: 700;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .steps li p { font-size: 15px; color: #333; line-height: 1.7; padding-top: 4px; }
+    .steps li strong { color: #1a1a2e; }
+
+    /* GATEKEEPER */
+    .gatekeeper-box {
+      background: #fff8e1;
+      border: 1px solid #ffe082;
+      border-left: 4px solid #f59e0b;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-top: 28px;
+    }
+    .gatekeeper-box h3 { font-size: 15px; font-weight: 700; color: #92650a; margin-bottom: 10px; }
+    .gatekeeper-box p { font-size: 14px; color: #6b4c0a; line-height: 1.7; }
+    .gatekeeper-box .method { margin-top: 12px; }
+    .gatekeeper-box .method-label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #92650a;
+      margin-bottom: 4px;
+    }
+    kbd {
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 1px 7px;
+      font-size: 13px;
+      font-family: -apple-system, monospace;
+      color: #333;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.12);
+    }
+
+    /* SCREENSHOTS */
+    .screenshots { text-align: center; }
+    .screen-grid {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .screen-placeholder {
+      width: 220px;
+      height: 140px;
+      background: #e8f0fe;
+      border: 2px dashed #a8c4f0;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      color: #1a73e8;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* DONATE */
+    .donate-section { background: #f0f4ff; }
+    .donate-section .section { text-align: center; max-width: 480px; }
+    .donate-section p { font-size: 15px; color: #555; margin-bottom: 24px; }
+    .donate-img-wrap {
+      display: inline-block;
+      background: #fff;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    .donate-img-wrap img { width: 180px; height: 180px; display: block; object-fit: contain; }
+    .donate-placeholder {
+      width: 180px;
+      height: 180px;
+      background: #e8f0fe;
+      border: 2px dashed #a8c4f0;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #1a73e8;
+    }
+
+    /* FOOTER */
+    footer {
+      background: #1a1a2e;
+      color: #aaa;
+      text-align: center;
+      padding: 28px 24px;
+      font-size: 13px;
+    }
+    footer a { color: #7eb3ff; text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* DIVIDER */
+    hr.divider { border: none; border-top: 1px solid #ececec; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="#" class="logo">📁 AndroidFileTransfer</a>
+  <span class="spacer"></span>
+  <a href="https://github.com/Sickle2/AndroidFileTransfer" target="_blank">GitHub</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-icon">📱⇄💻</div>
+  <h1>Android 文件传输</h1>
+  <p>Mac 与 Android 手机之间最简单的文件传输方案。无需安装手机 App，WiFi 扫码直传。</p>
+  <div class="hero-btns">
+    <a href="https://github.com/Sickle2/AndroidFileTransfer/releases/latest" class="btn-primary">
+      ⬇️ 下载 macOS 版
+    </a>
+    <a href="https://github.com/Sickle2/AndroidFileTransfer" class="btn-secondary" target="_blank">
+      查看源码
+    </a>
+  </div>
+  <p class="hero-note">macOS 12+ · Apple Silicon / Intel Universal · 免费开源</p>
+</section>
+
+<!-- FEATURES -->
+<section class="section">
+  <h2 class="section-title">核心功能</h2>
+  <div class="features">
+    <div class="feature-card">
+      <div class="feature-icon">📶</div>
+      <h3>WiFi 无线传输</h3>
+      <p>手机扫描二维码，在手机浏览器中直接浏览、下载 Mac 上的共享文件，或把手机文件上传到 Mac。无需安装任何 App。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔒</div>
+      <h3>可控共享范围</h3>
+      <p>默认只共享你手动添加的文件和文件夹，隐藏文件自动过滤，手机端看不到真实的 Mac 路径。上传统一进入接收目录。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔌</div>
+      <h3>ADB USB 传输</h3>
+      <p>连上 USB 数据线，即可在应用中浏览手机的 /sdcard，双向推送和拉取文件，适合需要稳定高速传输的场景。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🖥️</div>
+      <h3>原生 macOS 体验</h3>
+      <p>基于 Wails 构建，Go 后端 + React 前端，体积小、启动快，原生窗口交互，支持 Apple Silicon 和 Intel Mac。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🗂️</div>
+      <h3>文件夹内浏览</h3>
+      <p>手机端支持多级目录导航，有面包屑和「← 上级」按钮，操作像本地文件管理器一样直观。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚙️</div>
+      <h3>配置持久化</h3>
+      <p>共享文件列表、接收目录等配置自动保存，重启应用后无需重新设置。配置文件存放在 Application Support 目录。</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- INSTALL -->
+<section class="install-section">
+  <div class="section">
+    <h2 class="section-title">下载安装</h2>
+    <ol class="steps">
+      <li>
+        <p>前往 <a href="https://github.com/Sickle2/AndroidFileTransfer/releases/latest" style="color:#1a73e8">Releases 页面</a>，下载 <strong>AndroidFileTransfer-x.x.x.dmg</strong>。</p>
+      </li>
+      <li>
+        <p>打开下载的 DMG 文件，把 <strong>AndroidFileTransfer.app</strong> 拖入右侧的 <strong>Applications</strong> 文件夹。</p>
+      </li>
+      <li>
+        <p>在 Launchpad 或 Applications 文件夹中打开应用。</p>
+      </li>
+      <li>
+        <p>确保手机和 Mac 在同一个 WiFi 网络下，在设备列表中选中 WiFi 设备，扫描二维码即可开始传输。</p>
+      </li>
+    </ol>
+
+    <div class="gatekeeper-box">
+      <h3>⚠️ 提示："无法验证开发者" / "Apple 无法检查是否包含恶意软件"</h3>
+      <p>本应用未经 Apple 付费公证，macOS Gatekeeper 会在首次启动时拦截。这是正常现象，请按以下任一方法放行：</p>
+      <div class="method">
+        <div class="method-label">方法一（推荐）</div>
+        <p>在 Finder 找到 AndroidFileTransfer.app，<strong>右键单击 → 打开</strong>，弹窗中点击"打开"。之后双击正常启动。</p>
+      </div>
+      <div class="method" style="margin-top:10px">
+        <div class="method-label">方法二</div>
+        <p><strong>系统设置 → 隐私与安全性</strong>，在底部"已阻止使用 AndroidFileTransfer"旁点击<strong>"仍要打开"</strong>，输入密码确认。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- DONATE -->
+<section class="donate-section">
+  <div class="section">
+    <h2 class="section-title">打赏支持 ☕</h2>
+    <p>如果这个工具对你有帮助，欢迎请作者喝杯咖啡。你的支持是继续维护的动力！</p>
+    <div class="donate-img-wrap">
+      <!-- 把微信/支付宝收款码图片放到 docs/donate.png，图片会自动显示 -->
+      <img src="donate.png" alt="打赏码"
+           onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+           style="display:block; width:180px; height:180px; object-fit:contain;">
+      <div class="donate-placeholder" style="display:none">
+        <span style="font-size:32px">☕</span>
+        <span>放置打赏码图片</span>
+        <span style="font-size:11px; opacity:0.7">docs/donate.png</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>
+    AndroidFileTransfer · 开源项目 ·
+    <a href="https://github.com/Sickle2/AndroidFileTransfer" target="_blank">GitHub</a> ·
+    <a href="https://github.com/Sickle2/AndroidFileTransfer/releases" target="_blank">下载</a> ·
+    <a href="https://github.com/Sickle2/AndroidFileTransfer/issues" target="_blank">反馈问题</a>
+  </p>
+  <p style="margin-top:8px; font-size:12px; opacity:0.6">基于 Wails · Go · React · MIT License</p>
+</footer>
+
+</body>
+</html>

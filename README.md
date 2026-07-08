@@ -2,10 +2,29 @@
 
 一款 macOS 桌面应用，用于在 Mac 和 Android 手机之间传输文件，基于 [Wails](https://wails.io) 构建（Go 后端 + React/TypeScript 前端）。
 
+**[👉 下载最新版](https://github.com/Sickle2/AndroidFileTransfer/releases/latest)**
+
+---
+
 支持两种传输方式，可同时使用：
 
 - **WiFi**：手机在浏览器中打开一个网址（无需安装应用、无需数据线）来浏览/下载/上传文件到应用运行的本地 HTTP 服务器。
 - **ADB（USB）**：启用 USB 调试后，可浏览手机的文件系统（`/sdcard`），并直接通过 USB 推送/拉取文件。
+
+## 下载安装
+
+1. 前往 [Releases](https://github.com/Sickle2/AndroidFileTransfer/releases/latest) 下载 `AndroidFileTransfer-x.x.x.dmg`。
+2. 打开 DMG，把 **AndroidFileTransfer.app** 拖入 **Applications** 文件夹。
+
+> **首次打开提示"无法验证开发者"？**
+>
+> 本应用未经 Apple 公证，macOS Gatekeeper 会拦截首次启动。有两种解决方法（任选一种）：
+>
+> **方法一（推荐）：**  
+> 在 Finder 中找到 AndroidFileTransfer.app，**右键单击 → 打开**，在弹出窗口中点击"打开"即可。之后双击正常启动。
+>
+> **方法二：**  
+> 系统设置 → 隐私与安全性 → 在"已阻止使用 AndroidFileTransfer"旁点击"仍要打开"。
 
 ## 系统要求
 
@@ -49,7 +68,7 @@ wails build -platform darwin/universal
 1. 确保你的 Mac 和 Android 手机已连接到同一个 WiFi 网络。
 2. 启动应用，在设备列表中选中 WiFi 设备。右侧会显示二维码、访问网址以及共享设置面板。
 3. 在手机上扫描二维码（或在移动浏览器中手动打开形如 `http://192.168.1.x:8080` 的网址）。
-4. 在手机浏览器中浏览你共享的文件：点击文件夹可进入，点击下载图标保存到手机，或用上传按钮把手机文件发送到 Mac。
+4. 在手机浏览器中浏览你共享的文件：点击文件夹可进入，点击"← 上级"或面包屑返回，点击下载图标保存到手机，或用上传按钮把手机文件发送到 Mac。
 
 Android 手机上无需安装任何应用 — 一切都通过浏览器完成。
 
@@ -79,6 +98,7 @@ Android 手机上无需安装任何应用 — 一切都通过浏览器完成。
 
 ## 故障排除
 
+- **首次打开被 Gatekeeper 拦截**：右键 → 打开，或系统设置 → 隐私与安全性 → 仍要打开。
 - **ADB 未安装**：应用会显示提示并以仅 WiFi 模式继续运行，而不会崩溃。
 - **设备未授权**：在手机上接受"允许 USB 调试"的提示。
 - **WiFi 端口不可用**：应用会尝试一个较小的端口范围（8080-8084）；如果所有端口都被占用，应用将报告错误而不是崩溃。请释放一个端口或重新启动应用。
@@ -95,3 +115,11 @@ go build ./...
 # build the frontend
 cd frontend && npm run build
 ```
+
+## 打赏
+
+如果这个工具对你有帮助，欢迎请我喝杯咖啡 ☕
+
+<img src="docs/donate.png" alt="打赏码" width="200">
+
+> 把你的微信/支付宝收款码图片放到 `docs/donate.png` 即可显示。
