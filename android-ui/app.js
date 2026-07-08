@@ -1,4 +1,12 @@
-let currentPath = '';
+// The server exposes a virtual filesystem. Paths look like "/", "/shared/<id>"
+// or "/browse/<rel>" — they never contain real Mac paths. Because the
+// "/shared/<id>" segments are opaque, we track navigation as a stack of
+// {name, path} crumbs so the breadcrumb can show friendly names.
+let navStack = [{ name: '共享内容', path: '/' }];
+
+function currentPath() {
+  return navStack[navStack.length - 1].path;
+}
 
 function escapeHtml(s) {
   return String(s)
@@ -17,9 +25,10 @@ function showError(msg) {
   empty.classList.remove('hidden');
 }
 
+// loadFiles fetches the given virtual path. The navStack must already reflect
+// the target location before calling (see navigateInto / navigateToIndex).
 async function loadFiles(path) {
-  currentPath = path;
-  updateBreadcrumb(path);
+  updateBreadcrumb();
   try {
     const res = await fetch('/api/files?path=' + encodeURIComponent(path));
     if (!res.ok) {
@@ -34,18 +43,25 @@ async function loadFiles(path) {
   }
 }
 
-function updateBreadcrumb(path) {
-  const parts = path.split('/').filter(Boolean);
+function navigateInto(file) {
+  navStack.push({ name: file.name, path: file.path });
+  loadFiles(file.path);
+}
+
+function navigateToIndex(index) {
+  navStack = navStack.slice(0, index + 1);
+  loadFiles(currentPath());
+}
+
+function updateBreadcrumb() {
   const crumb = document.getElementById('breadcrumb');
-  crumb.innerHTML = '<span data-path="">根目录</span>';
-  let built = '';
-  parts.forEach(part => {
-    built += '/' + part;
-    const p = built;
-    crumb.innerHTML += ` / <span data-path="${escapeHtml(p)}">${escapeHtml(part)}</span>`;
-  });
-  crumb.querySelectorAll('span').forEach(s => {
-    s.addEventListener('click', () => loadFiles(s.dataset.path));
+  crumb.innerHTML = '';
+  navStack.forEach((entry, i) => {
+    if (i > 0) crumb.appendChild(document.createTextNode(' / '));
+    const span = document.createElement('span');
+    span.textContent = entry.name;
+    span.addEventListener('click', () => navigateToIndex(i));
+    crumb.appendChild(span);
   });
 }
 
@@ -54,6 +70,9 @@ function renderFiles(files) {
   const empty = document.getElementById('empty-tip');
   list.innerHTML = '';
   if (files.length === 0) {
+    empty.textContent = navStack.length === 1
+      ? 'Mac 端还没有共享任何文件'
+      : '此目录为空';
     empty.classList.remove('hidden');
     return;
   }
@@ -72,13 +91,12 @@ function renderFiles(files) {
       ${f.isDir ? '' : `<span class="download-btn">⬇️</span>`}
     `;
     div.querySelector('.file-name').textContent = f.name;
-    if (!f.isDir) {
-      div.querySelector('.download-btn').dataset.path = f.path;
-    }
     if (f.isDir) {
-      div.addEventListener('click', () => loadFiles(f.path));
+      div.addEventListener('click', () => navigateInto(f));
     } else {
-      div.querySelector('.download-btn').addEventListener('click', e => {
+      const btn = div.querySelector('.download-btn');
+      btn.dataset.path = f.path;
+      btn.addEventListener('click', e => {
         e.stopPropagation();
         window.location.href = '/api/download?path=' + encodeURIComponent(f.path);
       });
@@ -100,7 +118,8 @@ function formatSize(bytes) {
   return (bytes / 1024 / 1024).toFixed(1) + ' MB';
 }
 
-// Upload
+// Upload. The server ignores the client-supplied path and always stores files
+// in the Mac's configured receiving directory, so we don't send a path.
 document.getElementById('upload-input').addEventListener('change', async function() {
   const files = Array.from(this.files);
   if (files.length === 0) return;
@@ -111,6 +130,7 @@ document.getElementById('upload-input').addEventListener('change', async functio
 
   let successCount = 0;
   let failCount = 0;
+  let lastError = '';
 
   for (let i = 0; i < files.length; i++) {
     const f = files[i];
@@ -121,24 +141,28 @@ document.getElementById('upload-input').addEventListener('change', async functio
     const fd = new FormData();
     fd.append('file', f);
     try {
-      const res = await fetch('/api/upload?path=' + encodeURIComponent(currentPath), { method: 'POST', body: fd });
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
       if (res.ok) {
         successCount++;
       } else {
         failCount++;
+        lastError = await res.text();
       }
     } catch (e) {
       failCount++;
+      lastError = e.message;
     }
   }
   fill.style.width = '100%';
-  text.textContent = failCount === 0
-    ? `上传完成 ${successCount} 成功`
-    : `上传完成 ${successCount} 成功 ${failCount} 失败`;
-  setTimeout(() => bar.classList.add('hidden'), 2000);
+  if (failCount === 0) {
+    text.textContent = `已上传 ${successCount} 个文件到 Mac 接收目录`;
+  } else {
+    text.textContent = `完成 ${successCount} 成功 ${failCount} 失败：${lastError}`;
+  }
+  setTimeout(() => bar.classList.add('hidden'), 3000);
   this.value = '';
-  loadFiles(currentPath);
+  loadFiles(currentPath());
 });
 
-// Start
-loadFiles('');
+// Start at the virtual root.
+loadFiles('/');
