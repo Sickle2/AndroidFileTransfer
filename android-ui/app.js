@@ -53,6 +53,13 @@ function navigateToIndex(index) {
   loadFiles(currentPath());
 }
 
+// navigateUp goes back one level. No-op at the root.
+function navigateUp() {
+  if (navStack.length <= 1) return;
+  navStack.pop();
+  loadFiles(currentPath());
+}
+
 function updateBreadcrumb() {
   const crumb = document.getElementById('breadcrumb');
   crumb.innerHTML = '';
@@ -63,6 +70,9 @@ function updateBreadcrumb() {
     span.addEventListener('click', () => navigateToIndex(i));
     crumb.appendChild(span);
   });
+  // Show the back button only when there is a parent to go to.
+  const backBtn = document.getElementById('back-btn');
+  backBtn.classList.toggle('hidden', navStack.length <= 1);
 }
 
 function renderFiles(files) {
@@ -163,6 +173,9 @@ document.getElementById('upload-input').addEventListener('change', async functio
   this.value = '';
   loadFiles(currentPath());
 });
+
+// Back button.
+document.getElementById('back-btn').addEventListener('click', navigateUp);
 
 // Start at the virtual root.
 loadFiles('/');

@@ -2,7 +2,11 @@
 body { font-family: -apple-system, sans-serif; background: #f5f5f5; color: #333; }
 header { background: #1976d2; color: white; padding: 12px 16px; position: sticky; top: 0; z-index: 10; }
 header h1 { font-size: 18px; margin-bottom: 4px; }
-#breadcrumb { font-size: 12px; opacity: 0.85; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-row { display: flex; align-items: center; gap: 8px; }
+.back-btn { flex-shrink: 0; background: rgba(255,255,255,0.2); color: white; border: none;
+  border-radius: 6px; padding: 4px 10px; font-size: 13px; cursor: pointer; }
+.back-btn:active { background: rgba(255,255,255,0.35); }
+#breadcrumb { flex: 1; font-size: 12px; opacity: 0.85; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #breadcrumb span { cursor: pointer; }
 #breadcrumb span:hover { text-decoration: underline; }
 main { padding: 8px; min-height: calc(100vh - 120px); }
