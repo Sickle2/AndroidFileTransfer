@@ -3,8 +3,6 @@ package connection
 import (
 	"fmt"
 	"log/slog"
-	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -12,10 +10,11 @@ import (
 	"AndroidFileTransfer/internal/model"
 )
 
-// Manager aggregates WiFiServer and ADBManager, routing file operations by
-// deviceID prefix ("wifi:" or "adb:").
+// Manager aggregates WiFiServer, ShareManager, and ADBManager, routing file
+// operations by deviceID prefix ("wifi:" or "adb:").
 type Manager struct {
 	wifiSrv    *WiFiServer
+	shareMgr   *ShareManager
 	adbMgr     *ADBManager
 	broadcaster Broadcaster
 
@@ -27,14 +26,15 @@ type Manager struct {
 	wg       sync.WaitGroup
 }
 
-// NewManager creates a Manager with the given WiFiServer and ADBManager.
-// adbMgr may be nil if ADB is unavailable; the Manager will log a warning but
-// continue operating in WiFi-only mode.
-func NewManager(wifiSrv *WiFiServer, adbMgr *ADBManager) *Manager {
+// NewManager creates a Manager with the given collaborators.
+// adbMgr and shareMgr may be nil; the Manager logs a warning and continues
+// in a degraded mode (WiFi-only or no share config, respectively).
+func NewManager(wifiSrv *WiFiServer, adbMgr *ADBManager, shareMgr *ShareManager) *Manager {
 	return &Manager{
-		wifiSrv: wifiSrv,
-		adbMgr:  adbMgr,
-		stopCh:  make(chan struct{}),
+		wifiSrv:  wifiSrv,
+		adbMgr:   adbMgr,
+		shareMgr: shareMgr,
+		stopCh:   make(chan struct{}),
 	}
 }
 
@@ -117,7 +117,7 @@ func (m *Manager) ListDevices() []model.Device {
 }
 
 // GetFileList returns file entries for the given deviceID and path.
-// For WiFi devices it reads Mac-local files via os.ReadDir.
+// For WiFi devices the path is a virtual path resolved via ShareManager.
 // For ADB devices it delegates to ADBManager.ListFiles.
 func (m *Manager) GetFileList(deviceID, path string) ([]model.FileInfo, error) {
 	switch {
@@ -134,35 +134,17 @@ func (m *Manager) GetFileList(deviceID, path string) ([]model.FileInfo, error) {
 	}
 }
 
-// wifiFileList reads the local filesystem under the WiFiServer's root directory.
-// path is resolved and bounds-checked against rootDir before use.
+// wifiFileList lists the virtual directory via ShareManager.
+// path is a virtual path (e.g. "/" or "/shared/<id>"); no real Mac paths
+// are returned to callers.
 func (m *Manager) wifiFileList(path string) ([]model.FileInfo, error) {
+	if m.shareMgr == nil {
+		return nil, fmt.Errorf("共享管理器未初始化")
+	}
 	if path == "" {
-		path = m.wifiSrv.rootDir
+		path = "/"
 	}
-	resolved, err := m.wifiSrv.resolvePath(path)
-	if err != nil {
-		return nil, fmt.Errorf("路径超出根目录: %w", err)
-	}
-	entries, err := os.ReadDir(resolved)
-	if err != nil {
-		return nil, fmt.Errorf("读取目录失败: %w", err)
-	}
-	files := make([]model.FileInfo, 0, len(entries))
-	for _, e := range entries {
-		info, err := e.Info()
-		if err != nil {
-			continue
-		}
-		files = append(files, model.FileInfo{
-			Name:    e.Name(),
-			Path:    filepath.Join(resolved, e.Name()),
-			Size:    info.Size(),
-			IsDir:   e.IsDir(),
-			ModTime: info.ModTime(),
-		})
-	}
-	return files, nil
+	return m.shareMgr.ListVirtualDir(path)
 }
 
 // Download transfers a file from the device to localPath.
@@ -252,6 +234,14 @@ func (m *Manager) WiFiAddress() string {
 // WiFiQRCode delegates to the underlying WiFiServer.QRCode().
 func (m *Manager) WiFiQRCode() string {
 	return m.wifiSrv.QRCode()
+}
+
+// ShareConfig returns a copy of the current WiFi share configuration.
+func (m *Manager) ShareConfig() model.ShareConfig {
+	if m.shareMgr == nil {
+		return model.ShareConfig{}
+	}
+	return m.shareMgr.Config()
 }
 
 // WiFiServer returns the underlying WiFiServer so callers (in package main) can

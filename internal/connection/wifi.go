@@ -2,7 +2,6 @@ package connection
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -11,54 +10,30 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"AndroidFileTransfer/internal/model"
 	"AndroidFileTransfer/internal/util"
 )
 
 // WiFiServer serves files over HTTP for Android browser access.
+// Wire a ShareManager via SetShareManager before calling Start.
 type WiFiServer struct {
-	rootDir string
-	server  *http.Server
-	address string // http://<ip>:<port>
-	qrCode  string // data URI
-	uiFS    fs.FS  // embedded android-ui filesystem, injected by main package
+	shareMgr *ShareManager
+	server   *http.Server
+	address  string // http://<ip>:<port>
+	qrCode   string // data URI
+	uiFS     fs.FS  // embedded android-ui filesystem, injected by main package
 }
 
-// NewWiFiServer creates a server restricted to rootDir. If rootDir is empty,
-// the user's home directory is used as the root.
-func NewWiFiServer(rootDir string) *WiFiServer {
-	if rootDir == "" {
-		home, _ := os.UserHomeDir()
-		rootDir = home
-	}
-	abs, err := filepath.Abs(filepath.Clean(rootDir))
-	if err != nil {
-		abs = filepath.Clean(rootDir)
-	}
-	return &WiFiServer{rootDir: abs, uiFS: nil}
+// NewWiFiServer creates a WiFi HTTP server. Call SetShareManager to configure
+// the sharing scope, then Start to begin serving.
+func NewWiFiServer() *WiFiServer {
+	return &WiFiServer{}
 }
 
-// resolvePath resolves userPath against rootDir and ensures the result stays
-// within rootDir. userPath may be relative (interpreted relative to rootDir)
-// or absolute. Returns an error if the resolved path escapes rootDir.
-func (s *WiFiServer) resolvePath(userPath string) (string, error) {
-	var candidate string
-	if filepath.IsAbs(userPath) {
-		candidate = userPath
-	} else {
-		candidate = filepath.Join(s.rootDir, userPath)
-	}
-	cleaned, err := filepath.Abs(filepath.Clean(candidate))
-	if err != nil {
-		return "", err
-	}
-	if cleaned != s.rootDir && !strings.HasPrefix(cleaned, s.rootDir+string(os.PathSeparator)) {
-		return "", errors.New("禁止访问根目录外的路径")
-	}
-	return cleaned, nil
-}
+// SetShareManager wires the share configuration into the server.
+// Must be called before Start.
+func (s *WiFiServer) SetShareManager(mgr *ShareManager) { s.shareMgr = mgr }
 
 // Start finds a free port (8080-8084) and begins serving.
 func (s *WiFiServer) Start() error {
@@ -108,16 +83,15 @@ func (s *WiFiServer) Address() string { return s.address }
 func (s *WiFiServer) QRCode() string { return s.qrCode }
 
 // SetUIFS injects the embedded android-ui filesystem so it is served at "/".
-// Must be called before Start().
+// Must be called before Start.
 func (s *WiFiServer) SetUIFS(uiFS fs.FS) { s.uiFS = uiFS }
 
-// handler builds the HTTP mux (exported for testing with httptest).
+// handler builds the HTTP mux. Used directly in tests via httptest.
 func (s *WiFiServer) handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/files", s.handleFiles)
 	mux.HandleFunc("/api/download", s.handleDownload)
 	mux.HandleFunc("/api/upload", s.handleUpload)
-	// serve UI static files at root, if one has been injected
 	if s.uiFS != nil {
 		mux.Handle("/", http.FileServer(http.FS(s.uiFS)))
 	} else {
@@ -129,70 +103,73 @@ func (s *WiFiServer) handler() http.Handler {
 	return mux
 }
 
+// handleFiles lists virtual directory contents via the ShareManager.
+// The ?path parameter is a virtual path (e.g. "/" or "/shared/<id>").
+// All returned FileInfo.Path values are virtual — no real Mac paths leak.
 func (s *WiFiServer) handleFiles(w http.ResponseWriter, r *http.Request) {
-	path := r.URL.Query().Get("path")
-	if path == "" {
-		path = s.rootDir
+	if s.shareMgr == nil {
+		http.Error(w, "共享管理器未初始化", http.StatusInternalServerError)
+		return
 	}
-	path, err := s.resolvePath(path)
+	vpath := r.URL.Query().Get("path")
+	if vpath == "" {
+		vpath = "/"
+	}
+	files, err := s.shareMgr.ListVirtualDir(vpath)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
-	entries, err := os.ReadDir(path)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	var files []model.FileInfo
-	for _, e := range entries {
-		info, err := e.Info()
-		if err != nil {
-			continue
-		}
-		files = append(files, model.FileInfo{
-			Name:    e.Name(),
-			Path:    filepath.Join(path, e.Name()),
-			Size:    info.Size(),
-			IsDir:   e.IsDir(),
-			ModTime: info.ModTime(),
-		})
+	if files == nil {
+		files = []model.FileInfo{}
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(files)
 }
 
+// handleDownload resolves a virtual path and streams the file to the client.
+// Downloading a directory returns 400; hidden or out-of-bounds paths return 403.
 func (s *WiFiServer) handleDownload(w http.ResponseWriter, r *http.Request) {
-	path := r.URL.Query().Get("path")
-	path, err := s.resolvePath(path)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+	if s.shareMgr == nil {
+		http.Error(w, "共享管理器未初始化", http.StatusInternalServerError)
 		return
 	}
-	f, err := os.Open(path)
+	vpath := r.URL.Query().Get("path")
+	realPath, info, err := s.shareMgr.ResolveVirtualPath(vpath)
+	if err != nil {
+		if err == errVirtualDir {
+			http.Error(w, "无法下载目录", http.StatusBadRequest)
+		} else {
+			http.Error(w, err.Error(), http.StatusForbidden)
+		}
+		return
+	}
+	if info.IsDir() {
+		http.Error(w, "无法下载目录", http.StatusBadRequest)
+		return
+	}
+	f, err := os.Open(realPath)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 	defer f.Close()
-	info, err := f.Stat()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Disposition", "attachment; filename="+filepath.Base(path))
+	w.Header().Set("Content-Disposition", "attachment; filename="+filepath.Base(realPath))
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", info.Size()))
 	io.Copy(w, f)
 }
 
+// handleUpload accepts multipart file uploads and saves them to the upload
+// directory from ShareManager. The ?path query parameter is intentionally
+// ignored — uploads always land in the configured upload directory.
 func (s *WiFiServer) handleUpload(w http.ResponseWriter, r *http.Request) {
-	destDir := r.URL.Query().Get("path")
-	if destDir == "" {
-		destDir = s.rootDir
+	if s.shareMgr == nil {
+		http.Error(w, "共享管理器未初始化", http.StatusInternalServerError)
+		return
 	}
-	destDir, err := s.resolvePath(destDir)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusForbidden)
+	uploadDir := s.shareMgr.UploadDir()
+	if err := os.MkdirAll(uploadDir, 0o755); err != nil {
+		http.Error(w, "创建接收目录失败: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
@@ -200,18 +177,25 @@ func (s *WiFiServer) handleUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, fh := range r.MultipartForm.File["file"] {
+		name := filepath.Base(fh.Filename)
+		if err := ValidateUploadName(name); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 		src, err := fh.Open()
 		if err != nil {
 			continue
 		}
-		defer src.Close()
-		dst, err := os.Create(filepath.Join(destDir, filepath.Base(fh.Filename)))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		defer dst.Close()
-		io.Copy(dst, src)
+		func() {
+			defer src.Close()
+			dst, err := os.Create(filepath.Join(uploadDir, name))
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			defer dst.Close()
+			io.Copy(dst, src)
+		}()
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(`{"success":true}`))

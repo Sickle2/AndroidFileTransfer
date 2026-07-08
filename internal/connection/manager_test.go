@@ -2,6 +2,7 @@ package connection
 
 import (
 	"errors"
+	"path/filepath"
 	"testing"
 
 	"AndroidFileTransfer/internal/model"
@@ -236,8 +237,8 @@ func TestBroadcaster_PublishAfterClose(t *testing.T) {
 // TestManagerStop_DoubleCallNoPanic verifies that calling Stop twice on a
 // real Manager does not panic (regression for sync.Once fix).
 func TestManagerStop_DoubleCallNoPanic(t *testing.T) {
-	srv := NewWiFiServer(t.TempDir())
-	mgr := NewManager(srv, nil)
+	srv := NewWiFiServer()
+	mgr := NewManager(srv, nil, nil)
 
 	// Start is required to have a running wifiSrv so Stop() can close it.
 	if err := mgr.Start(); err != nil {
@@ -255,17 +256,21 @@ func TestManagerStop_DoubleCallNoPanic(t *testing.T) {
 }
 
 // TestManagerWifiFileList_OutOfBoundsPath verifies that wifiFileList returns
-// an error when given a path that escapes the WiFiServer's root directory.
+// an error when given an invalid virtual path (unknown prefix or hidden segment).
 func TestManagerWifiFileList_OutOfBoundsPath(t *testing.T) {
-	root := t.TempDir()
-	srv := NewWiFiServer(root)
-	mgr := NewManager(srv, nil)
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	shareMgr, err := newShareManagerWithConfigPath(configPath)
+	if err != nil {
+		t.Fatalf("newShareManagerWithConfigPath: %v", err)
+	}
+	srv := NewWiFiServer()
+	srv.SetShareManager(shareMgr)
+	mgr := NewManager(srv, nil, shareMgr)
 
-	// "/etc/passwd" is an absolute path outside the temp root on any Unix host.
-	// On the CI host it may not exist, but the bounds check fires before ReadDir.
-	_, err := mgr.wifiFileList("/etc/passwd")
+	// In selected mode an unknown /shared/<id> virtual path must return an error.
+	_, err = mgr.wifiFileList("/shared/nonexistent-id")
 	if err == nil {
-		t.Fatal("expected error for out-of-bounds path, got nil")
+		t.Fatal("expected error for unknown shared ID, got nil")
 	}
 }
 

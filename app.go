@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log/slog"
-	"os"
 
 	"AndroidFileTransfer/internal/connection"
 	"AndroidFileTransfer/internal/model"
@@ -19,11 +18,15 @@ type App struct {
 }
 
 // newApp creates a new App instance.
-// WiFiServer root defaults to the user's home directory for MVP.
-// A more restrictive path (e.g. ~/Downloads) can be offered via a future settings UI.
 func newApp() *App {
-	home, _ := os.UserHomeDir()
-	wifiSrv := connection.NewWiFiServer(home)
+	shareMgr, err := connection.NewShareManager()
+	if err != nil {
+		slog.Warn("share manager init failed, using defaults", "err", err)
+		shareMgr = nil
+	}
+
+	wifiSrv := connection.NewWiFiServer()
+	wifiSrv.SetShareManager(shareMgr)
 
 	// NewADBManager may fail if adb is not installed; that is non-fatal — the
 	// app continues in WiFi-only mode.
@@ -33,7 +36,7 @@ func newApp() *App {
 		adbMgr = nil
 	}
 
-	mgr := connection.NewManager(wifiSrv, adbMgr)
+	mgr := connection.NewManager(wifiSrv, adbMgr, shareMgr)
 	return &App{manager: mgr}
 }
 
