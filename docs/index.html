@@ -178,30 +178,33 @@
 
     /* DONATE */
     .donate-section { background: #f0f4ff; }
-    .donate-section .section { text-align: center; max-width: 480px; }
-    .donate-section p { font-size: 15px; color: #555; margin-bottom: 24px; }
+    .donate-section .section { text-align: center; max-width: 560px; }
+    .donate-section > .section > p { font-size: 15px; color: #555; margin-bottom: 24px; }
+    .donate-qr-row {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .donate-qr-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .donate-qr-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #444;
+    }
     .donate-img-wrap {
       display: inline-block;
       background: #fff;
       border-radius: 14px;
-      padding: 20px;
+      padding: 16px;
       box-shadow: 0 2px 12px rgba(0,0,0,0.08);
     }
-    .donate-img-wrap img { width: 180px; height: 180px; display: block; object-fit: contain; }
-    .donate-placeholder {
-      width: 180px;
-      height: 180px;
-      background: #e8f0fe;
-      border: 2px dashed #a8c4f0;
-      border-radius: 10px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      font-size: 13px;
-      color: #1a73e8;
-    }
+    .donate-img-wrap img { width: 160px; height: 160px; display: block; object-fit: contain; }
 
     /* FOOTER */
     footer {
@@ -322,15 +325,18 @@
   <div class="section">
     <h2 class="section-title">打赏支持 ☕</h2>
     <p>如果这个工具对你有帮助，欢迎请作者喝杯咖啡。你的支持是继续维护的动力！</p>
-    <div class="donate-img-wrap">
-      <!-- 把微信/支付宝收款码图片放到 docs/donate.png，图片会自动显示 -->
-      <img src="donate.png" alt="打赏码"
-           onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-           style="display:block; width:180px; height:180px; object-fit:contain;">
-      <div class="donate-placeholder" style="display:none">
-        <span style="font-size:32px">☕</span>
-        <span>放置打赏码图片</span>
-        <span style="font-size:11px; opacity:0.7">docs/donate.png</span>
+    <div class="donate-qr-row">
+      <div class="donate-qr-item">
+        <div class="donate-img-wrap">
+          <img src="donate.png" alt="支付宝收款码" style="display:block; width:160px; height:160px; object-fit:contain;">
+        </div>
+        <span class="donate-qr-label">支付宝</span>
+      </div>
+      <div class="donate-qr-item">
+        <div class="donate-img-wrap">
+          <img src="wechat.jpg" alt="微信收款码" style="display:block; width:160px; height:160px; object-fit:contain;">
+        </div>
+        <span class="donate-qr-label">微信</span>
       </div>
     </div>
   </div>
